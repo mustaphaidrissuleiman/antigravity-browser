@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/preload.js"></script>
+</head>
+<body>
+  <div id="app" class="browser-app">
+    <!-- Top Omnibox & Navigation Toolbar -->
+    <header class="browser-toolbar">
+      <!-- Nav Controls -->
+      <div class="nav-group">
+        <button id="backBtn" class="icon-btn" title="Back" aria-label="Back" disabled>
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button id="forwardBtn" class="icon-btn" title="Forward" aria-label="Forward" disabled>
+          <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button id="reloadBtn" class="icon-btn" title="Reload (Cmd+R)" aria-label="Reload">
+          <svg viewBox="0 0 24 24" id="reloadIcon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/></svg>
+        </button>
+        <button id="homeBtn" class="icon-btn" title="Launchpad Home" aria-label="Home">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </button>
+      </div>
+
+      <!-- Omnibox Address Bar -->
+      <div class="omnibox-container" id="omniboxContainer">
+        <div class="protocol-badge" id="protocolBadge" title="Protocol status">
+          <span id="badgeIcon" class="badge-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+        </div>
+        <form id="urlForm" class="url-form">
+          <input
+            type="text"
+            id="urlInput"
+            class="url-input"
+            placeholder="Enter URL (e.g. localhost:3000, https://...) or search..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </form>
+        <button id="starBtn" class="icon-btn sm" title="Bookmark this page" aria-label="Bookmark">
+          <svg viewBox="0 0 24 24" id="starIcon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button id="copyUrlBtn" class="icon-btn sm" title="Copy URL" aria-label="Copy URL">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
+
+      <!-- Action Tools -->
+      <div class="actions-group">
+        <!-- Mode Switch (Direct vs Proxy) -->
+        <button id="modeToggleBtn" class="pill-badge-btn" title="Toggle Direct Embed vs Proxy Mode">
+          <span class="mode-dot"></span>
+          <span id="modeLabel">Direct</span>
+        </button>
+
+        <!-- Viewport Preset -->
+        <div class="viewport-dropdown-wrapper">
+          <select id="viewportSelect" class="viewport-select" title="Simulated Device Viewport">
+            <option value="responsive">Responsive (100%)</option>
+            <option value="desktop">Desktop (1280px)</option>
+            <option value="tablet">Tablet (768px)</option>
+            <option value="mobile-se">Mobile SE (375px)</option>
+            <option value="mobile-pro">Mobile Pro (390px)</option>
+          </select>
+        </div>
+
+        <!-- Rotate Button (for mobile/tablet) -->
+        <button id="rotateBtn" class="icon-btn" title="Rotate Orientation" aria-label="Rotate Orientation" hidden>
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+
+        <!-- Open in external browser -->
+        <button id="openExternalBtn" class="icon-btn" title="Open in External Browser" aria-label="Open Externally">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+
+        <!-- Ask Agent -->
+        <button id="askAgentBtn" class="btn btn-primary btn-sm btn-agent" title="Ask Agent about this page">
+          <svg viewBox="0 0 24 24" class="agent-icon"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <span>Ask Agent</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Loading Progress Bar -->
+    <div id="loadingBar" class="loading-bar"></div>
+
+
+
+    <!-- Main View Area -->
+    <main class="browser-body">
+      <!-- 1. Launchpad / Home View -->
+      <section id="homeView" class="home-view">
+        <div class="home-content">
+          <div class="home-hero">
+            <div class="hero-logo">
+              <svg viewBox="0 0 64 64" width="48" height="48">
+                <rect width="64" height="64" rx="14" fill="var(--primary, #0284c7)"/>
+                <rect x="8" y="11" width="48" height="42" rx="6" fill="#0f172a" fill-opacity="0.9"/>
+                <circle cx="13" cy="16.5" r="2" fill="#ef4444"/>
+                <circle cx="18" cy="16.5" r="2" fill="#f59e0b"/>
+                <circle cx="23" cy="16.5" r="2" fill="#10b981"/>
+                <circle cx="32" cy="37" r="10" stroke="#38bdf8" stroke-width="2" fill="none"/>
+                <line x1="22" y1="37" x2="42" y2="37" stroke="#38bdf8" stroke-width="1.5"/>
+                <ellipse cx="32" cy="37" rx="5" ry="10" stroke="#38bdf8" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <h2>In-App Browser</h2>
+            <p class="muted">Live localhost preview, responsive device simulation, and web exploration inside Antigravity.</p>
+          </div>
+
+          <!-- Active Local Dev Servers Discovery Card -->
+          <div class="card dev-servers-card">
+            <div class="card-header">
+              <div class="header-left">
+                <svg viewBox="0 0 24 24" class="icon-server"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                <h3>Active Local Dev Servers</h3>
+              </div>
+              <button id="rescanServersBtn" class="btn btn-sm btn-subtle">
+                <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <span>Rescan</span>
+              </button>
+            </div>
+            <div id="devServersContainer" class="dev-servers-grid">
+              <div class="loading-state">
+                <div class="spinner sm"></div>
+                <span>Scanning local dev ports (3000, 5173, 8000, 8080...)...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Developer Quick Links / Bookmarks -->
+          <div class="card bookmarks-card">
+            <div class="card-header">
+              <h3>Bookmarks & Quick Launch</h3>
+              <button id="addBookmarkBtn" class="btn btn-sm btn-subtle">+ Add Bookmark</button>
+            </div>
+            <div id="homeBookmarksList" class="bookmarks-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Recent Browsing History -->
+          <div class="card history-card">
+            <div class="card-header">
+              <h3>Recent History</h3>
+              <button id="clearHistoryBtn" class="btn btn-sm btn-subtle">Clear History</button>
+            </div>
+            <div id="historyList" class="history-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Webview / Iframe Stage -->
+      <section id="webviewContainer" class="webview-container" hidden>
+        <div id="viewportFrame" class="viewport-frame responsive">
+          <div id="deviceBezelTop" class="device-bezel-top" hidden>
+            <span class="device-speaker"></span>
+            <span class="device-camera"></span>
+          </div>
+          <div id="deviceLabel" class="device-label" hidden>Responsive • 100%</div>
+          <iframe
+            id="browserFrame"
+            class="browser-frame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
+            title="Browser Webview"
+          ></iframe>
+        </div>
+
+        <!-- Blocked / Frame Security Warning Banner -->
+        <div id="frameWarningBanner" class="frame-warning-banner" hidden>
+          <div class="banner-content">
+            <svg viewBox="0 0 24 24" class="warning-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="banner-text">
+              <strong>Page blocked framing?</strong>
+              <span>External site headers (X-Frame-Options / CSP) might prevent direct embedding.</span>
+            </div>
+          </div>
+          <div class="banner-actions">
+            <button id="switchToProxyBtn" class="btn btn-sm btn-primary">Switch to Proxy Mode</button>
+            <button id="bannerOpenExternalBtn" class="btn btn-sm btn-subtle">Open in Browser</button>
+            <button id="dismissBannerBtn" class="icon-btn sm">✕</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Agent Context & Prompt Drawer -->
+    <aside id="agentDrawer" class="agent-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <svg viewBox="0 0 24 24" class="agent-icon"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <span>Ask Agent about <span id="agentTargetUrl" class="highlight-url">this page</span></span>
+        </div>
+        <button id="closeAgentDrawerBtn" class="icon-btn sm" title="Close Drawer">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="prompt-chips">
+          <button class="chip-btn" data-prompt="Please inspect the code for this page and help me debug any errors, console issues, or broken layouts.">
+            🐞 Debug & Fix Issues
+          </button>
+          <button class="chip-btn" data-prompt="Analyze the responsive layout, design, accessibility, and UX of this web app and suggest improvements.">
+            🎨 UI/UX & Responsive Review
+          </button>
+          <button class="chip-btn" data-prompt="Review this application against modern web development best practices and suggest performance optimizations.">
+            ⚡ Web Performance Audit
+          </button>
+          <button class="chip-btn" data-prompt="Write comprehensive automated test cases (unit or end-to-end) for this page.">
+            🧪 Generate Tests
+          </button>
+        </div>
+
+        <div class="prompt-input-group">
+          <textarea
+            id="agentPromptInput"
+            class="agent-textarea"
+            placeholder="Ask anything about this page or instruct the agent to make code edits..."
+            rows="3"
+          ></textarea>
+          <div class="prompt-submit-row">
+            <span class="muted small">Sends prompt directly to active conversation</span>
+            <button id="submitAgentPromptBtn" class="btn btn-primary btn-sm">Send to Chat</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Add Bookmark Modal -->
+    <div id="bookmarkModal" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Add Bookmark</h3>
+          <button id="closeBookmarkModalBtn" class="icon-btn sm">✕</button>
+        </div>
+        <form id="bookmarkForm" class="modal-body">
+          <div class="form-group">
+            <label for="bmTitle">Title</label>
+            <input type="text" id="bmTitle" class="input-control" placeholder="My Web App" required>
+          </div>
+          <div class="form-group">
+            <label for="bmUrl">URL</label>
+            <input type="text" id="bmUrl" class="input-control" placeholder="http://localhost:3000" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="cancelBookmarkBtn" class="btn btn-subtle btn-sm">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Save Bookmark</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Notification</div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

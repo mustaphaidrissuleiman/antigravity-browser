@@ -1,0 +1,13 @@
+{
+  "name": "browser",
+  "displayName": "Browser",
+  "version": "1.0.0",
+  "description": "Full-featured in-app browser for Antigravity 2.0 with local dev server discovery, responsive device simulation, proxy framing, and agent integration.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Open the browser in the side panel",
+    "Open localhost:3000 in the browser",
+    "Scan for active local dev servers",
+    "Preview my web app on mobile viewport"
+  ]
+}

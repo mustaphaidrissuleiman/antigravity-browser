@@ -1,0 +1,18 @@
+{
+  "command": "node",
+  "args": ["main.mjs"],
+  "restart_policy": "always",
+  "display_name": "Browser",
+  "description": "Browse web apps, local dev servers, and documentation directly in the side panel.",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Browser",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Browser"
+      }
+    ]
+  }
+}
