@@ -178,11 +178,12 @@
   // ---------------------------------------------------------------------------
   function navigate(rawUrl, options = {}) {
     if (!rawUrl) return;
+    const { addToStack = true, forceMode = null, autoDetectMode = true } = options;
     const url = sanitizeUrlInput(rawUrl);
     const isLocal = url.includes('localhost') || url.includes('127.0.0.1') || url.includes('0.0.0.0');
     if (forceMode) {
       setMode(forceMode);
-    } else if (options.autoDetectMode !== false) {
+    } else if (autoDetectMode) {
       // Smart detection: external websites (e.g. github, google) usually set X-Frame-Options.
       // Default external sites to proxy mode so they render properly in-app.
       if (!isLocal && mode !== 'proxy') {
