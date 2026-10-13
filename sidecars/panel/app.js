@@ -353,7 +353,8 @@
         </div>
         <button class="btn btn-sm btn-primary">Open</button>
       `;
-      card.querySelector('button').onclick = () => navigate(srv.url);
+      card.onclick = () => navigate(srv.url);
+      card.style.cursor = 'pointer';
       devServersContainer.appendChild(card);
     });
   }
@@ -386,7 +387,7 @@
         </div>
         <button class="bm-del-btn" title="Delete bookmark">✕</button>
       `;
-      card.querySelector('.bm-info').onclick = () => navigate(bm.url);
+      card.onclick = () => navigate(bm.url);
       card.querySelector('.bm-del-btn').onclick = (e) => {
         e.stopPropagation();
         deleteBookmark(bm.id);
@@ -555,26 +556,57 @@
       .replace(/'/g, '&#39;');
   }
 
-  function parseInitialUrl() {
+  function extractUrlFrom(str) {
+    if (!str || typeof str !== 'string') return null;
     try {
-      const searchParams = new URLSearchParams(window.location.search);
-      let urlParam = searchParams.get('url');
-
-      if (!urlParam && window.location.hash) {
-        const hash = window.location.hash.replace(/^#\/?/, '');
-        const hashQuery = hash.includes('?') ? hash.split('?')[1] : hash;
+      const parsed = new URL(str, window.location.origin || 'http://localhost');
+      let val = parsed.searchParams.get('url');
+      if (!val && parsed.hash) {
+        const hashPart = parsed.hash.replace(/^#\/?/, '');
+        const hashQuery = hashPart.includes('?') ? hashPart.split('?')[1] : hashPart;
         const hashParams = new URLSearchParams(hashQuery);
-        urlParam = hashParams.get('url');
+        val = hashParams.get('url');
       }
-
-      if (urlParam) {
-        return decodeURIComponent(urlParam);
+      if (!val && str.includes('url=')) {
+        const m = str.match(/[?&#]url=([^&#]+)/);
+        if (m) val = decodeURIComponent(m[1]);
       }
-    } catch (err) {
-      console.debug('Error parsing initial URL:', err);
-    }
+      if (val) {
+        val = val.trim();
+        if ((val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith("'") && val.endsWith("'")) ||
+            (val.startsWith('`') && val.endsWith('`'))) {
+          val = val.slice(1, -1).trim();
+        }
+        return val;
+      }
+    } catch {}
     return null;
   }
+
+  function parseInitialUrl() {
+    return extractUrlFrom(window.location.href);
+  }
+
+  function checkUrlParams() {
+    const extracted = parseInitialUrl();
+    if (extracted && extracted !== currentUrl) {
+      navigate(extracted);
+      return true;
+    }
+    return false;
+  }
+
+  window.addEventListener('popstate', () => checkUrlParams());
+  window.addEventListener('hashchange', () => checkUrlParams());
+
+  let lastHref = window.location.href;
+  setInterval(() => {
+    if (window.location.href !== lastHref) {
+      lastHref = window.location.href;
+      checkUrlParams();
+    }
+  }, 400);
 
   // ---------------------------------------------------------------------------
   // Bind Events
@@ -733,23 +765,39 @@
     } catch {}
   });
 
-  // Proxy postMessage listener
+  // Message listener for proxy frame & Antigravity host
   window.addEventListener('message', (event) => {
-    if (event.data) {
-      if (event.data.type === 'browser:navigated') {
-        if (event.data.url) {
-          currentUrl = event.data.url;
-          urlInput.value = currentUrl;
-          currentTitle = event.data.title || currentUrl;
-          updateProtocolBadge(currentUrl);
-          updateStarIcon();
-          logHistoryEntry(currentUrl);
-        }
-      } else if (event.data.type === 'browser:navigate-request') {
-        if (event.data.url) {
-          navigate(event.data.url);
-        }
+    const data = event.data;
+    if (!data) return;
+
+    if (data.type === 'browser:navigated') {
+      if (data.url) {
+        currentUrl = data.url;
+        urlInput.value = currentUrl;
+        currentTitle = data.title || currentUrl;
+        updateProtocolBadge(currentUrl);
+        updateStarIcon();
+        logHistoryEntry(currentUrl);
       }
+      return;
+    }
+
+    if (data.type === 'browser:navigate-request') {
+      if (data.url) {
+        navigate(data.url);
+      }
+      return;
+    }
+
+    // Host payload or raw string
+    const hostTarget =
+      data.url ||
+      data.payload?.url ||
+      data.payload?.target ||
+      extractUrlFrom(typeof data === 'string' ? data : (data.url || data.payload?.url || null));
+
+    if (hostTarget && typeof hostTarget === 'string') {
+      navigate(hostTarget);
     }
   });
 
