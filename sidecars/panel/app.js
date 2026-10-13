@@ -179,10 +179,21 @@
   function navigate(rawUrl, options = {}) {
     if (!rawUrl) return;
     const url = sanitizeUrlInput(rawUrl);
-    const { addToStack = true, forceMode = null } = options;
-
+    const isLocal = url.includes('localhost') || url.includes('127.0.0.1') || url.includes('0.0.0.0');
     if (forceMode) {
       setMode(forceMode);
+    } else if (options.autoDetectMode !== false) {
+      // Smart detection: external websites (e.g. github, google) usually set X-Frame-Options.
+      // Default external sites to proxy mode so they render properly in-app.
+      if (!isLocal && mode !== 'proxy') {
+        mode = 'proxy';
+        modeToggleBtn.classList.add('proxy');
+        modeLabel.textContent = 'Proxy';
+      } else if (isLocal && mode !== 'direct') {
+        mode = 'direct';
+        modeToggleBtn.classList.remove('proxy');
+        modeLabel.textContent = 'Direct';
+      }
     }
 
     currentUrl = url;
@@ -724,14 +735,20 @@
 
   // Proxy postMessage listener
   window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'browser:navigated') {
-      if (event.data.url) {
-        currentUrl = event.data.url;
-        urlInput.value = currentUrl;
-        currentTitle = event.data.title || currentUrl;
-        updateProtocolBadge(currentUrl);
-        updateStarIcon();
-        logHistoryEntry(currentUrl);
+    if (event.data) {
+      if (event.data.type === 'browser:navigated') {
+        if (event.data.url) {
+          currentUrl = event.data.url;
+          urlInput.value = currentUrl;
+          currentTitle = event.data.title || currentUrl;
+          updateProtocolBadge(currentUrl);
+          updateStarIcon();
+          logHistoryEntry(currentUrl);
+        }
+      } else if (event.data.type === 'browser:navigate-request') {
+        if (event.data.url) {
+          navigate(event.data.url);
+        }
       }
     }
   });

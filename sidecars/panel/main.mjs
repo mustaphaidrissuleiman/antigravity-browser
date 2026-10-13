@@ -258,12 +258,24 @@ app.api('/api/proxy', async (data) => {
               }, '*');
             } catch(e) {}
 
-            // Prevent frame-busting scripts
+            // Prevent frame-busting scripts safely
             try {
-              if (window.top !== window.self) {
-                window.top = window.self;
-              }
+              Object.defineProperty(window, 'top', { get: () => window.self });
+              Object.defineProperty(window, 'parent', { get: () => window.self });
             } catch(e) {}
+
+            // Intercept link clicks so navigation stays inside the in-app browser
+            document.addEventListener('click', function(e) {
+              const a = e.target && e.target.closest('a');
+              if (a && a.href && !a.href.startsWith('javascript:') && !a.href.startsWith('#')) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.parent.postMessage({
+                  type: 'browser:navigate-request',
+                  url: a.href
+                }, '*');
+              }
+            }, true);
           })();
         </script>
       `;
