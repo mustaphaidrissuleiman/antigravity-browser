@@ -108,6 +108,11 @@
     if (!input || typeof input !== 'string') return '';
     let val = input.trim();
 
+    // Block dangerous pseudo-protocols
+    if (/^(javascript|data|vbscript|file):/i.test(val)) {
+      return 'about:blank';
+    }
+
     // Check if localhost without protocol
     if (/^(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.test(val)) {
       return `http://${val}`;
@@ -118,8 +123,8 @@
       return `https://${val}`;
     }
 
-    // Check if already has valid protocol
-    if (/^[a-z]+:\/\//i.test(val)) {
+    // Check if already has valid http/https protocol
+    if (/^https?:\/\//i.test(val)) {
       return val;
     }
 
@@ -768,6 +773,10 @@
 
   // Message listener for proxy frame & Antigravity host
   window.addEventListener('message', (event) => {
+    // Only process messages originating from the browser frame, host, or self
+    if (event.source !== browserFrame?.contentWindow && event.source !== window.parent && event.source !== window) {
+      return;
+    }
     const data = event.data;
     if (!data) return;
 

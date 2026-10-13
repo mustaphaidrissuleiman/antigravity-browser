@@ -228,6 +228,30 @@ app.api('/api/proxy', async (data) => {
       });
     }
 
+    // Only allow HTTP and HTTPS protocols
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return new Response(JSON.stringify({ error: 'Only http and https protocols are supported' }), {
+        status: 400,
+        contentType: 'application/json'
+      });
+    }
+
+    // Protect against Cloud metadata SSRF
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (
+      hostname === '169.254.169.254' ||
+      hostname.startsWith('169.254.') ||
+      hostname === 'metadata.google.internal' ||
+      hostname === 'instance-data' ||
+      hostname === '[::ffff:169.254.169.254]' ||
+      hostname === 'fd00:ec2::254'
+    ) {
+      return new Response(JSON.stringify({ error: 'Access to cloud metadata service is forbidden' }), {
+        status: 403,
+        contentType: 'application/json'
+      });
+    }
+
     const response = await fetch(parsedUrl.href, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
@@ -291,8 +315,7 @@ app.api('/api/proxy', async (data) => {
       return new Response(html, {
         contentType: 'text/html; charset=utf-8',
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store'
         }
       });
     } else {
@@ -301,7 +324,7 @@ app.api('/api/proxy', async (data) => {
       return new Response(Buffer.from(arrayBuf), {
         contentType: rawContentType,
         headers: {
-          'Access-Control-Allow-Origin': '*'
+          'Cache-Control': 'no-cache, no-store'
         }
       });
     }
